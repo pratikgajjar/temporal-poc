@@ -1,5 +1,48 @@
-version: '3.8'
+version: "3.9"
+
+x-health-defaults: &health-defaults
+  interval: 10s
+  timeout: 5s
+  retries: 3
+  start_period: 10s
+
+x-temporal-backend-pg: &temporal-backend-pg
+  DB: postgres12
+  DB_PORT: 5432
+  POSTGRES_USER: postgres
+  POSTGRES_PWD: postgres
+  POSTGRES_SEEDS: postgres
+
+x-temporal-backend-scylla: &temporal-backend-scylla
+  CASSANDRA_PORT: 9042
+  CASSANDRA_SEEDS: scylla
+
+x-flow-worker-env: &flow-worker-env
+  TEMPORAL_HOST_PORT: temporal:7233
+  TEMPORAL_CLIENT_CERT:
+  TEMPORAL_CLIENT_KEY:
+  TEMPORAL_NAMESPACE: default
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      PGUSER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    command:
+      [
+        "postgres",
+        "-c",
+        "log_statement=all",
+        "-c",
+        "max_connections=${POSTGRES_MAX_CONNECTIONS:-100}",
+      ]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      <<: *health-defaults
+      test: ["CMD", "pg_isready", "-d", "postgres", "-U", "postgres"]
   scylla:
     image: scylladb/scylla
     volumes:
@@ -7,8 +50,49 @@ services:
     ports:
       - "9042:9042"
       - "10000:10000"
+    healthcheck:
+      <<: *health-defaults
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE keyspaces;'"]
+  temporal:
+    container_name: temporal
+    depends_on:
+      scylla:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      # <<: *temporal-backend-scylla
+      <<: *temporal-backend-pg
+    image: temporalio/auto-setup:1.22
+    ports:
+      - 7233:7233
+
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_SHOW_STACKS=1
+    image: temporalio/admin-tools:1.22
+    stdin_open: true
+    tty: true
+
+  temporal-ui:
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+      - TEMPORAL_CSRF_COOKIE_INSECURE=true
+    image: temporalio/ui:2.21.3
+    ports:
+      - 8085:8080
 
 volumes:
   scylla-data:
+  pgdata:
 
 

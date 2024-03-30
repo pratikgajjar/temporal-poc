@@ -14,8 +14,6 @@ This project showcases a temporal workflow using PostgreSQL and ScyllaDB as back
 ### Installation
 
 1. Clone the repository:
-   ```bash
 2. docker-compose up -d
-
 3. go run ./worker 
 4. go run ./starter

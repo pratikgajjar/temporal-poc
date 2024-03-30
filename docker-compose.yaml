@@ -26,6 +26,8 @@ x-flow-worker-env: &flow-worker-env
 services:
   postgres:
     image: postgres:16-alpine
+    ports:
+      - "9432:5432"
     environment:
       PGUSER: postgres
       POSTGRES_PASSWORD: postgres
@@ -90,7 +92,21 @@ services:
     image: temporalio/ui:2.21.3
     ports:
       - 8085:8080
+  presto:
+    image: prestodb/presto:latest
+    ports:
+      - 8080:8080
+    volumes:
+      - ./resources/etc:/opt/presto-server/etc
 
+  # metabase:
+  #   image: metabase/metabase
+  #   ports:
+  #     - 3000:3000
+  #   networks:
+  #     - presto
+  #   volumes:
+  #     - .docker/metabase/data:/metabase-data
 volumes:
   scylla-data:
   pgdata:

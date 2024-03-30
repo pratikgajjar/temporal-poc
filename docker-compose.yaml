@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  scylla:
+    image: scylladb/scylla
+    volumes:
+      - scylla-data:/var/lib/scylla
+    ports:
+      - "9042:9042"
+      - "10000:10000"
+
+volumes:
+  scylla-data:
+
+

@@ -58,8 +58,8 @@ services:
   temporal:
     container_name: temporal
     depends_on:
-      scylla:
-        condition: service_healthy
+      # scylla:
+      #   condition: service_healthy
       postgres:
         condition: service_healthy
     environment:

@@ -19,16 +19,18 @@ func main() {
 	defer c.Close()
 
 	// This workflow ID can be user business logic identifier as well.
-	workflowID := "cron_" + uuid.New().String()
+
+	var we client.WorkflowRun
+	var workflowID string
 	workflowOptions := client.StartWorkflowOptions{
 		ID:        workflowID,
 		TaskQueue: "cron",
 		// CronSchedule: "5 * * * *",
 	}
 
-	var we client.WorkflowRun
-
 	for _ = range 1000 {
+		workflowID = "cron_" + uuid.New().String()
+		workflowOptions.ID = workflowID
 		we, err = c.ExecuteWorkflow(context.Background(), workflowOptions, flow.SampleCronWorkflow)
 		if err != nil {
 			log.Fatalln("Unable to execute workflow", err)
